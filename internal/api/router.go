@@ -29,6 +29,10 @@ func Router(runtime *Runtime, webDirectory string) http.Handler {
 	router.Route("/api", func(api chi.Router) {
 		api.Get("/chambers", chambersHandler(runtime))
 		api.Get("/interlocks", interlocksHandler(runtime))
+		api.Get("/devices", telemetryDevicesHandler(runtime))
+		api.Get("/chambers/{chamberID}/devices", chamberDevicesHandler(runtime))
+		api.Post("/telemetry/heartbeats", telemetryHeartbeatHandler(runtime))
+		api.Post("/chambers/{chamberID}/devices/{device}/heartbeat", deviceHeartbeatHandler(runtime))
 		api.Get("/incidents", incidentsHandler(runtime))
 		api.Get("/plans", plansHandler(runtime))
 		api.Post("/plans", createPlanHandler(runtime))

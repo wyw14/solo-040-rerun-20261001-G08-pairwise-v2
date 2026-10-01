@@ -16,6 +16,7 @@ import (
 	"github.com/wyw14/cry-96/internal/safety"
 	"github.com/wyw14/cry-96/internal/schedule"
 	"github.com/wyw14/cry-96/internal/signal"
+	"github.com/wyw14/cry-96/internal/telemetry"
 )
 
 // Runtime contains the long-lived component graph used by HTTP handlers.
@@ -42,6 +43,7 @@ type Runtime struct {
 	Snapshot        *monitor.Snapshot
 	Incidents       *monitor.IncidentReview
 	Health          *monitor.HealthRegistry
+	Telemetry       *telemetry.Collector
 	Recovery        *cycle.Recovery
 	Chambers        []string
 	Now             func() time.Time
@@ -103,9 +105,13 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 			model.DeviceUpstreamGate, model.DeviceDownstreamGate,
 			model.DeviceFillValve, model.DeviceDrainValve,
 		} {
-			health.Observe(chamberID, device, true, "telemetry current", now())
+			// Devices are unknown at startup until the first heartbeat proves
+			// they are reachable; nothing is assumed online.
+			health.Seed(chamberID, device, now())
 		}
 	}
+	telemetryCollector := telemetry.New(health, telemetry.DefaultTimeout, now)
+	go telemetryCollector.Run(ctx, 0)
 	return &Runtime{
 		Store: store, Recorder: recorder, GateState: gateState,
 		GateCommands: gateCommands, Gates: gateController,
@@ -115,7 +121,8 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 		Interlocks: interlockCoordinator, Cycles: cycleCoordinator, CycleService: cycleService,
 		Leases: leaseService, LeaseSweeper: leaseSweeper, Safety: safetyService,
 		Snapshot:  monitor.NewSnapshot(cycleCoordinator, gateState, admissionService, signalService, safetyService, now),
-		Incidents: monitor.NewIncidentReview(store), Health: health, Recovery: recovery,
+		Incidents: monitor.NewIncidentReview(store), Health: health,
+		Telemetry: telemetryCollector, Recovery: recovery,
 		Chambers: chambers, Now: now,
 	}, nil
 }

@@ -53,6 +53,14 @@ th { color: #91a0a8; font-weight: 600; }
 .status.warning::before { background: #f2c14e; }
 .status.critical::before { background: #ef6f6c; }
 .message { min-height: 22px; color: #f2c14e; font-size: 13px; margin-top: 10px; white-space: pre-wrap; }
+h3 { font-size: 14px; margin: 14px 0 8px; color: #b9c4ca; }
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.badge.ok { color: #5bc0be; border-color: #5bc0be; background: rgba(91, 192, 190, 0.12); }
+.badge.warning { color: #f2c14e; border-color: #f2c14e; background: rgba(242, 193, 78, 0.12); }
+.badge.critical { color: #ef6f6c; border-color: #ef6f6c; background: rgba(239, 111, 108, 0.14); }
 @media (max-width: 780px) {
   header { height: auto; padding: 14px 18px; align-items: flex-start; flex-direction: column; gap: 10px; }
   main { padding: 20px 16px 40px; }

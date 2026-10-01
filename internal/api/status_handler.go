@@ -24,6 +24,7 @@ func interlocksHandler(runtime *Runtime) http.HandlerFunc {
 			}
 			result[chamberID] = map[string]any{
 				"equipment":         runtime.Interlocks.Snapshot(chamberID),
+				"devices":           runtime.Telemetry.ChamberViews(chamberID),
 				"emergency":         runtime.Safety.Status(chamberID),
 				"pending_commands":  runtime.GateCommands.Pending(chamberID),
 				"pending_equipment": runtime.Safety.Barrier().Pending(chamberID),
