@@ -22,15 +22,17 @@ func pageHandler(webDirectory, name string) http.HandlerFunc {
 func healthHandler(runtime *Runtime) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusOK
+		summary := "ok"
 		for _, chamberID := range runtime.Chambers {
-			if !runtime.Health.AllOnline(chamberID) {
+			if !runtime.Telemetry.AllOnline(chamberID) {
 				status = http.StatusServiceUnavailable
+				summary = "degraded"
 				break
 			}
 		}
 		writeJSON(w, status, map[string]any{
-			"status": "ok", "request_id": requestID(r.Context()),
-			"devices": runtime.Health.List(), "time": runtime.Now().UTC(),
+			"status": summary, "request_id": requestID(r.Context()),
+			"devices": runtime.Telemetry.List(), "time": runtime.Now().UTC(),
 		})
 	}
 }

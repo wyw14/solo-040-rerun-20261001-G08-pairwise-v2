@@ -3,8 +3,20 @@ const form = document.querySelector("#plan-form");
 const message = document.querySelector("#plan-message");
 
 async function refresh() {
-  const [plans, chambers, health] = await Promise.all([api("/api/plans"), api("/api/chambers"), api("/healthz")]);
-  document.querySelector("#health").textContent = health.status === "ok" ? "Devices online" : "Attention required";
+  const [plans, chambers, devices] = await Promise.all([api("/api/plans"), api("/api/chambers"), api("/api/telemetry/devices")]);
+  const chip = document.querySelector("#health");
+  const offline = devices.filter((device) => device.state === "offline").length;
+  const unknown = devices.filter((device) => device.state === "unknown").length;
+  chip.classList.remove("warning", "critical");
+  if (offline > 0) {
+    chip.textContent = `${offline} device(s) offline`;
+    chip.classList.add("critical");
+  } else if (unknown > 0) {
+    chip.textContent = `${unknown} device(s) unknown`;
+    chip.classList.add("warning");
+  } else {
+    chip.textContent = "Devices online";
+  }
   const rows = Object.entries(plans).flatMap(([chamber, items]) => items.map((plan) => `<tr><td>${chamber}</td><td>${shortID(plan.id)}</td><td>${plan.direction}</td><td>${plan.vessels.length}</td><td>${new Date(plan.created_at).toLocaleTimeString()}</td></tr>`));
   document.querySelector("#plans").innerHTML = rows.join("") || '<tr><td colspan="5" class="muted">No active plans</td></tr>';
   const current = chambers.find((item) => item.cycle);

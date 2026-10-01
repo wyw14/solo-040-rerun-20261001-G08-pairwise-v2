@@ -18,6 +18,13 @@ import (
 	"github.com/wyw14/cry-96/internal/signal"
 )
 
+// Telemetry thresholds for gate and valve heartbeats.
+const (
+	telemetryLateAfter     = 10 * time.Second
+	telemetryTimeout       = 30 * time.Second
+	telemetryMaxFutureSkew = 30 * time.Second
+)
+
 // Runtime contains the long-lived component graph used by HTTP handlers.
 type Runtime struct {
 	Store           journal.Store
@@ -41,7 +48,7 @@ type Runtime struct {
 	Safety          *safety.Service
 	Snapshot        *monitor.Snapshot
 	Incidents       *monitor.IncidentReview
-	Health          *monitor.HealthRegistry
+	Telemetry       *monitor.Telemetry
 	Recovery        *cycle.Recovery
 	Chambers        []string
 	Now             func() time.Time
@@ -97,13 +104,13 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 	if _, err := recovery.RestoreAll(ctx); err != nil {
 		return nil, err
 	}
-	health := monitor.NewHealthRegistry()
+	telemetry := monitor.NewTelemetry(telemetryLateAfter, telemetryTimeout, telemetryMaxFutureSkew, now)
 	for _, chamberID := range chambers {
 		for _, device := range []model.DeviceKind{
 			model.DeviceUpstreamGate, model.DeviceDownstreamGate,
 			model.DeviceFillValve, model.DeviceDrainValve,
 		} {
-			health.Observe(chamberID, device, true, "telemetry current", now())
+			telemetry.Track(chamberID, device)
 		}
 	}
 	return &Runtime{
@@ -115,7 +122,7 @@ func NewRuntime(ctx context.Context, dataDirectory string) (*Runtime, error) {
 		Interlocks: interlockCoordinator, Cycles: cycleCoordinator, CycleService: cycleService,
 		Leases: leaseService, LeaseSweeper: leaseSweeper, Safety: safetyService,
 		Snapshot:  monitor.NewSnapshot(cycleCoordinator, gateState, admissionService, signalService, safetyService, now),
-		Incidents: monitor.NewIncidentReview(store), Health: health, Recovery: recovery,
+		Incidents: monitor.NewIncidentReview(store), Telemetry: telemetry, Recovery: recovery,
 		Chambers: chambers, Now: now,
 	}, nil
 }
